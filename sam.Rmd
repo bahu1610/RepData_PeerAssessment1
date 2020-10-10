@@ -1,0 +1,240 @@
+---
+title: Project 1
+author: "Medha Bahukhandi"
+date: "10/10/2020"
+---
+
+
+
+
+
+## PROJECT ONE : REPRODUCIBLE RESEARCH
+
+
+
+
+**MAking Global Options:**
+
+```{r setoptions, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE, results = "asis", cache = TRUE)
+
+```
+
+
+
+
+
+
+**1. Loading the data into R **
+
+
+```{r load}
+
+actdata <- read.csv("./repdata_data_activity/activity.csv", header = TRUE)
+  
+actdata$date<- strptime(actdata$date, "%Y-%m-%d")
+
+
+```
+
+
+
+
+
+**2. Finding the mean number of steps taken per day**
+
+
+
+```{r plot1}
+
+#Loading the necessary packages:
+library(dplyr)
+library(RColorBrewer)
+
+#Choosing the colors:
+cols<- brewer.pal(5, "Set2")
+
+
+#Grouping data by date and finding sum:
+ actsum<-actdata%>%
+  group_by(date)%>%
+  summarise(steps = sum(steps))
+ 
+ 
+ #Making the histogram
+ hist(actsum$steps, main = "Total Number of steps each day", xlab = "Steps", ylab = "Frequency",
+     col = cols)
+
+```
+
+
+
+
+
+**3. Mean and Median of Steps taken per day**
+
+
+
+```{r mean}
+
+Mean<-  round(mean(actsum$steps, na.rm = TRUE), digits = 2)
+Mean
+
+
+```
+```{r}
+Median<- median(actsum$steps, na.rm = TRUE)
+Median
+```
+
+
+
+
+**4. Average Daily Pattern**
+
+
+
+```{r}
+
+library(ggplot2)
+
+
+#Loading the font:
+windowsFonts(Times=windowsFont("TT Times New Roman"))
+
+#Modifications:
+cols1<- element_text(colour = "red", hjust = 0.5, family = "Times")
+
+
+#Averaging steps by grouping by intervals:
+msteps<- actdata%>%
+  group_by(interval)%>%
+  summarise(steps = mean(steps, na.rm=TRUE))
+
+
+#Making the plot:
+g<- ggplot(msteps, aes(interval, steps))
+g+ geom_line(color= "blue")+ theme_bw()+ theme(plot.title = cols1, axis.title = cols1)+ 
+  labs(title = "Average Daily Activity pattern", x = "Intervals", y = "Steps")
+
+
+```
+
+
+
+**5. Five Minute interval containing the maximum number of steps**
+
+
+
+```{r}
+msteps[which.max(msteps$steps),]$interval
+```
+
+
+
+**6. The total number of missing values in the data set:**
+
+
+
+```{r missing}
+nomissing<- sum(is.na(actdata))
+nomissing
+```
+
+
+
+
+**7. Filling in the missing values**
+
+
+
+```{r Impute}
+
+
+meanie<- function(interval){
+  msteps[msteps$interval==interval,]$steps
+}
+
+actdata1 <- actdata
+
+for(i in 1:nrow(actdata1)){
+  if (is.na(actdata1[i,]$steps)){
+  actdata1[i,]$steps <- meanie(actdata1[i,]$interval)
+}
+}
+```
+
+
+
+
+**8. New histogram**
+
+
+
+```{r}
+actdata1$date<- as.Date(actdata1$date, "%Y-%m-%d")
+
+pal<- brewer.pal(5, "Set1")
+
+newhist<- actdata1%>%
+  group_by(date)%>%
+  summarise(steps= sum(steps))
+
+hist(newhist$steps, col = pal, xlab = "Number of Steps", main = "Total Steps at different dates",
+     ylab = "Frequency")
+```
+
+
+
+
+**9. Making factors of Weekdays and weekends **
+
+
+
+```{r}
+
+
+library(lubridate)
+actdata1$days <- weekdays(actdata1$date)
+ 
+for(i in 1:nrow(actdata1)){
+  if (actdata1[i,]$days%in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")){
+    actdata1[i,]$days <- "Weekday"
+  }
+  else{
+    actdata1[i,]$days <- "Weekend"
+  }
+}
+
+```
+
+
+
+
+###Panel plot
+
+
+
+```{r}
+actdata1$steps<- round(actdata1$steps, digits = 2)
+
+wsteps<- actdata1%>%
+  group_by(days,interval)%>%
+  summarise(steps = mean(steps, na.rm = TRUE))
+  
+
+
+library(ggplot2)
+pal1<- element_text(hjust = 0.5, colour = "red")
+
+g<- ggplot(wsteps, aes(interval, steps))
+g+ facet_grid(days ~ .) + theme_classic()+ geom_line(color = "blue") + theme(axis.title = pal1, plot.title = pal1) +
+  labs(title = "Average number of steps taken per 5-minute interval across weekdays and weekends", x = "Interval", y = "Total steps") 
+```
+
+
+
+
+
+
+
